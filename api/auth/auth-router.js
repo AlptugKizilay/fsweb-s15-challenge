@@ -1,8 +1,16 @@
-const router = require('express').Router();
+const userModel = require("../models/users-model");
+const { JWT_SECRET } = require("../secrets");
+const router = require("express").Router();
+const mw = require("./auth-middleware");
+const bcryptjs = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-router.post('/register', (req, res) => {
-  res.end('kayıt olmayı ekleyin, lütfen!');
-  /*
+router.post(
+  "/register",
+  mw.payloadCheck,
+  mw.userNameCheck,
+  async (req, res, next) => {
+    /*
     EKLEYİN
     Uçnoktanın işlevselliğine yardımcı olmak için middlewarelar yazabilirsiniz.
     2^8 HASH TURUNU AŞMAYIN!
@@ -27,10 +35,20 @@ router.post('/register', (req, res) => {
     4- Kullanıcı adı alınmışsa BAŞARISIZ kayıtta,
       şu mesajı içermelidir: "username alınmış".
   */
-});
+    try {
+      const userEntity = {
+        username: req.body.username,
+        password: bcryptjs.hashSync(req.body.password),
+      };
+      const insertedUser = await userModel.insertUser(userEntity);
+      res.status(201).json(insertedUser);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
-router.post('/login', (req, res) => {
-  res.end('girişi ekleyin, lütfen!');
+router.post("/login", mw.userNameCheck, (req, res, next) => {
   /*
     EKLEYİN
     Uçnoktanın işlevselliğine yardımcı olmak için middlewarelar yazabilirsiniz.
@@ -54,6 +72,22 @@ router.post('/login', (req, res) => {
     4- "username" db de yoksa ya da "password" yanlışsa BAŞARISIZ giriş,
       şu mesajı içermelidir: "geçersiz kriterler".
   */
+  try {
+    const token = jwt.sign(
+      {
+        username: req.body.username,
+        password: bcryptjs.hashSync(req.body.password),
+      },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+    res.json({
+      message: `welcome, ${req.user.username}`,
+      token: token,
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 module.exports = router;
