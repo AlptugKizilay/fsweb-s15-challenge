@@ -40,6 +40,7 @@ router.post(
         username: req.body.username,
         password: bcryptjs.hashSync(req.body.password),
       };
+
       const insertedUser = await userModel.insertUser(userEntity);
       res.status(201).json(insertedUser);
     } catch (error) {
@@ -82,7 +83,7 @@ router.post("/login", mw.userNameCheck, (req, res, next) => {
       { expiresIn: "1d" }
     );
     res.json({
-      message: `welcome, ${req.user.username}`,
+      message: `welcome, ${req.body.username}`,
       token: token,
     });
   } catch (error) {
